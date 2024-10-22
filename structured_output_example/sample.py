@@ -1,10 +1,11 @@
-from typing import List, Optional, Dict, Union
-from pydantic import BaseModel, Field, validator
+from typing import List, Optional, Dict, Union, Literal
+from pydantic import BaseModel, Field, field_validator
 import re
-from langchain.output_parsers import PydanticOutputParser
+from langchain.output_parsers import PydanticOutputParser, RetryOutputParser
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda, RunnableParallel
+
 
 class ValueFrequency(BaseModel):
     value: Optional[Union[str, int, float]]
@@ -37,7 +38,7 @@ pattern_prompt = """
         Ensure the expected_pattern accurately represents the structure of the data, not just a sample value."""
 
 class ColumnSemanticReview(BaseModel):
-    expected_type: str = Field(description="The expected data type")
+    expected_type: Literal['list', 'field'] = Field(description="The expected data type")
     allow_missing: bool = Field(description="Whether missing values are allowed - true/false")
     expected_range: Optional[List[float]] = Field(description="Expected range for numeric columns", default=None)
     expected_pattern: Optional[str] = Field(description=pattern_prompt, default=None)
@@ -45,7 +46,7 @@ class ColumnSemanticReview(BaseModel):
     disguised_missing_values: List[str] = Field(description="Potential disguised missing values")
     missing_records: Optional[str] = Field(description="Description of potential missing records", default=None)
 
-    @validator('expected_pattern')
+    @field_validator('expected_pattern')
     def validate_regex(cls, v):
         if v is not None:
             try:
@@ -67,6 +68,7 @@ class SemanticProfiler:
 
     def semantic_review(self, table_name: str, semantic_context: SemanticContext, statistical_profile: StatisticalProfile) -> Dict[str, ColumnSemanticReview]:
         parser = PydanticOutputParser(pydantic_object=ColumnSemanticReview)
+        retry_parser = RetryOutputParser.from_llm(parser=parser, llm=self.llm)
 
         prompt = PromptTemplate(
             template="""Given the following information about the column '{col}':
@@ -80,27 +82,32 @@ class SemanticProfiler:
             partial_variables={"format_instructions": parser.get_format_instructions()}
         )
 
-        print("Example Prompt:")
+        # print("Example Prompt:")
         formatted_prompt = prompt.format(
             col="email",
             semantic_context=semantic_context.column_summary.get("email", ""),
             stats=statistical_profile.columns["email"].model_dump()
-            )
-        print(formatted_prompt)
+            ) 
+        
 
-        chain = prompt | self.llm | parser
+        # print(formatted_prompt)
+
+        chain = prompt | self.llm 
+        retry_chain = RunnableParallel(
+        completion=chain, prompt_value=prompt
+        ) | RunnableLambda(lambda x: retry_parser.parse_with_prompt(completion=x["completion"].content, prompt_value=x["prompt_value"]))
+
+
         review = {}
+        col = "email"
 
-        for col, stats in statistical_profile.columns.items():
-            try:
-                result = chain.invoke({
-                    "col": col,
-                    "semantic_context": semantic_context.column_summary.get(col, ""),
-                    "stats": stats.model_dump()
-                })
-                review[col] = result
-            except Exception as e:
-                print(f"Error processing column {col}: {e}")
+        result = chain.invoke({
+        "col": col,
+        "semantic_context":semantic_context.column_summary.get("email", ""),
+        "stats":statistical_profile.columns["email"].model_dump()
+        }) 
+        review[col] = result
+
 
         return review
 
@@ -135,11 +142,12 @@ if __name__ == "__main__":
 
     semantic_review = profiler.semantic_review(table_name, semantic_context, statistical_profile)
 
+    print(semantic_review)
 
 
-    print("Semantic Review:")
-    for col, review in semantic_review.items():
-        print(f"\n{col}:")
-        print(review.model_dump_json(indent=2))
+    # print("Semantic Review:")
+    # for col, review in semantic_review.items():
+    #     print(f"\n{col}:")
+    #     print(review.model_dump_json(indent=2))
 
     

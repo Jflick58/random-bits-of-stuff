@@ -1608,6 +1608,21 @@ files = [
 poetry = ">=1.4.2,<2.0.0"
 
 [[package]]
+name = "poetry-dotenv-plugin"
+version = "0.2.0"
+description = "A Poetry plugin to automatically load environment variables from .env files"
+optional = false
+python-versions = ">=3.7,<4"
+files = [
+    {file = "poetry_dotenv_plugin-0.2.0-py3-none-any.whl", hash = "sha256:dc2fd816a96e32586afb6507f01de6070a8a50877207ae20efa7c6a75648143a"},
+    {file = "poetry_dotenv_plugin-0.2.0.tar.gz", hash = "sha256:9bdd0a96d81ba5f2e75bda7c8944e2c5132b0c615c44452770dd1e7f1aca62f6"},
+]
+
+[package.dependencies]
+poetry = ">=1.2.0a1"
+python-dotenv = ">=0.10.0"
+
+[[package]]
 name = "poetry-plugin-export"
 version = "1.8.0"
 description = "Poetry plugin to export the dependencies to various formats"
@@ -1885,6 +1900,20 @@ files = [
     {file = "pyproject_hooks-1.2.0-py3-none-any.whl", hash = "sha256:9e5c6bfa8dcc30091c74b0cf803c81fdd29d94f01992a7707bc97babb1141913"},
     {file = "pyproject_hooks-1.2.0.tar.gz", hash = "sha256:1e859bd5c40fae9448642dd871adf459e5e2084186e8d2c2a79a824c970da1f8"},
 ]
+
+[[package]]
+name = "python-dotenv"
+version = "1.0.1"
+description = "Read key-value pairs from a .env file and set them as environment variables"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "python-dotenv-1.0.1.tar.gz", hash = "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca"},
+    {file = "python_dotenv-1.0.1-py3-none-any.whl", hash = "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a"},
+]
+
+[package.extras]
+cli = ["click (>=5.0)"]
 
 [[package]]
 name = "pywin32-ctypes"
@@ -2653,4 +2682,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "ed508052ab47e20b2f4f1ccee36f6edce2c92fbc39aca107c9a01151d73b5894"
+content-hash = "8a7b48fc68b9da4f07f8e25bda7b6a8f6af80477a58b1619dadffc398f63d314"
